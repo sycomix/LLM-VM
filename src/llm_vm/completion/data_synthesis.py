@@ -68,10 +68,9 @@ class DataSynthesis:
         the_clean_data = []
         if '' in  the_data:
             # loop to remove empty strings
-            for i in range(len(the_data)):
-                if the_data[i] != '':
-                    the_clean_data.append(the_data[i])
-
+            the_clean_data.extend(
+                the_data[i] for i in range(len(the_data)) if the_data[i] != ''
+            )
         json_list = []
         for data in the_clean_data:
             # Sometimes GPT-4 returns a numbered list
@@ -81,7 +80,7 @@ class DataSynthesis:
                 json_list.append(json_data)
             else:
                 json_list.append(data)
-        
+
         prompt_list = [] 
 
         # to use open AI prompts + responses seed_examples must be equal to examples_to_generate
@@ -102,7 +101,7 @@ class DataSynthesis:
             for s in seed_prompts:
                 s_examples = []
                 while len(s_examples) < ex_per_seed:
-                    gen_prompt = f"Generate 1 statement like the one below: \n" + s
+                    gen_prompt = f"Generate 1 statement like the one below: \n{s}"
                     res = self.call_big(gen_prompt, max_tokens=max_tokens, **call_big_kwargs)
                     s_examples.append(res)
                 prompt_list += s_examples

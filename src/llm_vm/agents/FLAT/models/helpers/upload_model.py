@@ -11,7 +11,7 @@ __PROGRESS_LABEL = " ⏳ Processing"
 __FINISHED_LABEL = "\n 🎉 Finished!" + \
                    "\n 🔗"
 
-def upload_model (
+def upload_model(
     data: PromptModelEntry,
     openai_model: str,
     file_name: str,
@@ -34,9 +34,9 @@ def upload_model (
 
     if is_test:
         return {
-            "model_name": file_name + "_EXXX",
+            "model_name": f"{file_name}_EXXX",
             "model_files": [],
-            "elapsed_time_s": int(time.time() - start_of_execution)
+            "elapsed_time_s": int(time.time() - start_of_execution),
         }
 
     upload_response = openai.files.create(file=open(file_path, "rb"),

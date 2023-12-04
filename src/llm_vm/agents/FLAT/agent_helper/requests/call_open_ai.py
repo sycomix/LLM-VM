@@ -27,11 +27,9 @@ def call_open_ai(request: LLMCallParams) -> LLMCallReturnType:
     if api_key:
         current_key = openai.api_key
         os.environ["OPENAI_API_KEY"] = api_key
-        openai.api_key = api_key
     else:
         api_key = os.getenv("LLM_VM_OPENAI_API_KEY")
-        openai.api_key = api_key
-
+    openai.api_key = api_key
     if chat == LLMCallType.OPENAI_CHAT:
         response = openai.chat.completions.create(model="gpt-3.5-turbo-0301",
         max_tokens=max_tokens,

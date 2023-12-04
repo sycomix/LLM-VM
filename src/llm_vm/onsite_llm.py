@@ -98,7 +98,9 @@ class BaseOnsiteLLM(ABC):
         # Move the model to the specified device(s)
         if isinstance(device, list):
             # If multiple GPUs are available, use DataParallel to parallelize the model
-            self.model = torch.nn.DataParallel(self.model, device_ids=[i for i in range(len(device))])
+            self.model = torch.nn.DataParallel(
+                self.model, device_ids=list(range(len(device)))
+            )
             self.model.to(device[0])  # Move model to the first GPU in the list
             print(f"`{self.model_uri}` loaded on {len(device)} GPUs.", file=sys.stderr)
         else:
@@ -198,12 +200,24 @@ class BaseOnsiteLLM(ABC):
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
             else:
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            new_model = os.path.join(model_path_default,"finetuned_models",self.model_name, timestamp + '_' + self.model_name + ".pt" ) if model_filename is None else os.path.join(model_path_default,"finetuned_models",model_filename)
+            new_model = (
+                os.path.join(
+                    model_path_default,
+                    "finetuned_models",
+                    self.model_name,
+                    f'{timestamp}_{self.model_name}.pt',
+                )
+                if model_filename is None
+                else os.path.join(
+                    model_path_default, "finetuned_models", model_filename
+                )
+            )
             open(new_model,"a")
             torch.save(self.model.state_dict(), new_model) # the model in memory is different now
-            self.model_name = self.model_name + "_ft_"+  timestamp
+            self.model_name = f"{self.model_name}_ft_{timestamp}"
             optimizer.storage.set_model(c_id, new_model)
             return math.exp(eval_results['eval_loss']) #perplexity is the metric we use for finetuning measurement
+
         return asynctune
 
 
@@ -238,7 +252,7 @@ class BaseOnsiteLLM(ABC):
                 bias="none",
                 task_type="CAUSAL_LM",
             )
-            
+
             trainer = SFTTrainer(
                 self.model,
                 args=training_args,
@@ -257,28 +271,39 @@ class BaseOnsiteLLM(ABC):
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
             else:
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            new_model = os.path.join(model_path_default,"finetuned_models",self.model_name, timestamp + '_' + self.model_name + ".pt" ) if model_filename is None else os.path.join(model_path_default,"finetuned_models",model_filename)
+            new_model = (
+                os.path.join(
+                    model_path_default,
+                    "finetuned_models",
+                    self.model_name,
+                    f'{timestamp}_{self.model_name}.pt',
+                )
+                if model_filename is None
+                else os.path.join(
+                    model_path_default, "finetuned_models", model_filename
+                )
+            )
             open(new_model,"a")
             torch.save(self.model.state_dict(), new_model) # the model in memory is different now
-            self.model_name = self.model_name + "_ft_"+  timestamp
+            self.model_name = f"{self.model_name}_ft_{timestamp}"
             optimizer.storage.set_model(c_id, new_model)
             return math.exp(eval_results['eval_loss']) #perplexity is the metric we use for finetuning measurement
+
         return async_lora
     
     def quantize_model(self, bits=4):
-        if self.model.is_quantizable():
-            q4_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type='nf4', bnb_4bit_compute_dtype=torch.bfloat16)
-            q8_config = BitsAndBytesConfig(load_in_8bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
-            
-            if bits == 4:
-                q_model = AutoModelForCausalLM.from_pretrained(self.model_uri, quantization_config=q4_config)
-            elif bits == 8:
-                q_model = AutoModelForCausalLM.from_pretrained(self.model_uri, quantization_config=q8_config)
-            else:
-                raise ValueError("Only 4-bit and 8-bit quantization supported")
-            return q_model
-        else:
+        if not self.model.is_quantizable():
             raise NotImplementedError(f"{self.model} cannot be quantized")
+        q4_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type='nf4', bnb_4bit_compute_dtype=torch.bfloat16)
+        q8_config = BitsAndBytesConfig(load_in_8bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
+
+        if bits == 4:
+            q_model = AutoModelForCausalLM.from_pretrained(self.model_uri, quantization_config=q4_config)
+        elif bits == 8:
+            q_model = AutoModelForCausalLM.from_pretrained(self.model_uri, quantization_config=q8_config)
+        else:
+            raise ValueError("Only 4-bit and 8-bit quantization supported")
+        return q_model
 
 
     def qlora_finetune(self, data, optimizer, c_id, model_filename=None):
@@ -306,7 +331,7 @@ class BaseOnsiteLLM(ABC):
                 optim="paged_adamw_8bit"
             )
             test_set = FinetuningDataset(tokenized_final_dataset,len(untokenized_final_dataset))
-            
+
             self.model.gradient_checkpointing_enable()
             self.model = prepare_model_for_kbit_training(self.model)
             config = LoraConfig(
@@ -335,12 +360,24 @@ class BaseOnsiteLLM(ABC):
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
             else:
                 timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            new_model = os.path.join(model_path_default,"finetuned_models",self.model_name, timestamp + '_' + self.model_name + ".pt" ) if model_filename is None else os.path.join(model_path_default,"finetuned_models",model_filename)
+            new_model = (
+                os.path.join(
+                    model_path_default,
+                    "finetuned_models",
+                    self.model_name,
+                    f'{timestamp}_{self.model_name}.pt',
+                )
+                if model_filename is None
+                else os.path.join(
+                    model_path_default, "finetuned_models", model_filename
+                )
+            )
             open(new_model,"a")
             torch.save(self.model.state_dict(), new_model) # the model in memory is different now
-            self.model_name = self.model_name + "_ft_"+  timestamp
+            self.model_name = f"{self.model_name}_ft_{timestamp}"
             optimizer.storage.set_model(c_id, new_model)
             return math.exp(eval_results['eval_loss']) #perplexity is the metric we use for finetuning measurement
+
         return async_qlora
     
     def finetune_immediately(self):
@@ -927,21 +964,26 @@ class BaseCtransformersLLM(BaseOnsiteLLM):
         if 'model_file' in kwargs:
             del kwargs['model_file']
 
-        if vram > 0:
-            model_size = self._get_model_size()
-            model_layers = self._get_model_layers()
-
-            size_per_layer = model_size // model_layers
-            offload_layers = vram // size_per_layer
-            if offload_layers > model_layers:
-                offload_layers = model_layers
-
-            if self.model_file is not None:
-                return AutoModelForCausalLM.from_pretrained(self.__model_uri, model_file=self.__model_file, gpu_layers=offload_layers, **kwargs)
-            else:
-                return AutoModelForCausalLM.from_pretrained(self.__model_uri, gpu_layers=offload_layers, **kwargs)
-        else: 
+        if vram <= 0:
             raise ValueError("Expected VRAM to be greater than 0.")
+        model_size = self._get_model_size()
+        model_layers = self._get_model_layers()
+
+        size_per_layer = model_size // model_layers
+        offload_layers = vram // size_per_layer
+        offload_layers = min(offload_layers, model_layers)
+        return (
+            AutoModelForCausalLM.from_pretrained(
+                self.__model_uri,
+                model_file=self.__model_file,
+                gpu_layers=offload_layers,
+                **kwargs
+            )
+            if self.model_file is not None
+            else AutoModelForCausalLM.from_pretrained(
+                self.__model_uri, gpu_layers=offload_layers, **kwargs
+            )
+        )
         
     def generate(self, prompt, *generate_kwargs):  
         input_ids = self.model.tokenize(prompt)

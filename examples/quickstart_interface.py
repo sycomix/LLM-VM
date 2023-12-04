@@ -10,13 +10,14 @@ def anarchy_client(prompt,
                    temperature=0.0, 
                    data_synthesis=False, 
                    finetune=False):
-    response = client.complete(prompt = prompt,context=context,
-                            openai_key=openai_key,
-                            temperature=temperature,
-                            data_synthesis=data_synthesis,
-                            finetune=finetune,)
-    
-    return response
+    return client.complete(
+        prompt=prompt,
+        context=context,
+        openai_key=openai_key,
+        temperature=temperature,
+        data_synthesis=data_synthesis,
+        finetune=finetune,
+    )
 
 
 

@@ -4,7 +4,9 @@ from llm_vm.utils.typings_llm import *
 
 def __question_splitter_data() -> QuestionSplitInputModel:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.abspath(os.path.join(current_dir, f'../../raw_data/question_split_data.json'))
+    file_path = os.path.abspath(
+        os.path.join(current_dir, '../../raw_data/question_split_data.json')
+    )
 
     json_data: List[QuestionSplitModelJSONData] = json.load(open(file_path, "r"))["data"]
 

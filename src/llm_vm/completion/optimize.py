@@ -21,7 +21,7 @@ job_id = None # we want to be able to cancel a fine_tune if you kill the program
 
 def exit_handler(signum, frame):
 
-    if (None != job_id):
+    if job_id != None:
         print("cancelling fine-tune if applicable", file=sys.stderr)
         openai.fine_tunes.cancel(id=job_id)
 
@@ -41,10 +41,8 @@ def generate_hash(input_string):
 def asyncStart(foo):
     t = [None, None]
     def new_thread():
-        if callable(foo):
-            t[0] = foo()
-        else:
-            t[0] = lambda x: x
+        t[0] = foo() if callable(foo) else (lambda x: x)
+
     t[1] = threading.Thread(target=new_thread)
     t[1].start()
     return t
@@ -98,7 +96,7 @@ class LocalEphemeral:
         return self.training_store[c_id]["model"]
 
     def init_if_null(self, c_id):
-        if not c_id in self.training_store:
+        if c_id not in self.training_store:
             self.training_store[c_id] = { "is_training": False,
                                           'lock' : threading.Lock(),
                                           "data": [],
@@ -277,8 +275,9 @@ class LocalOptimizer(Optimizer):
 
                     if len(training_exs) >= self.MIN_TRAIN_EXS and not self.storage.get_training_in_progress_set_true(c_id):
                         print("Actually Fine-tuning", flush=True, file=sys.stderr)
-                        print("Training examples:",str(len(training_exs)), file=sys.stderr)
+                        print("Training examples:", len(training_exs), file=sys.stderr)
                         asyncStart(self.small_model.finetune(training_exs,self,c_id,small_model_filename))
+
                 return (best_completion, actual_train)
 
             best_completion_promise = asyncStart(promiseCompletion)

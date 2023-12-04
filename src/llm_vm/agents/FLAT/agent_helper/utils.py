@@ -70,12 +70,12 @@ def remove_similars(similars_list, tolerance = 3):
     similars_len = len(similars_list)
 
     for i in range(similars_len):
-        has_duplicate: bool = False
-        for j in range(i+1, similars_len):
-            if lev(sanitized_list[i], sanitized_list[j], score_cutoff=tolerance) < tolerance:
-                has_duplicate = True
-                break
-        if has_duplicate == False:
+        has_duplicate: bool = any(
+            lev(sanitized_list[i], sanitized_list[j], score_cutoff=tolerance)
+            < tolerance
+            for j in range(i + 1, similars_len)
+        )
+        if not has_duplicate:
             unique_list.append(similars_list[i])
     return unique_list
 

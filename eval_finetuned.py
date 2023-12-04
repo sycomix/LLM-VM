@@ -34,7 +34,7 @@ class suppress_output:
 def squared_sum(x):
     """return 3 rounded square rooted value"""
 
-    return round(sqrt(sum([a * a for a in x])), 3)
+    return round(sqrt(sum(a * a for a in x)), 3)
 
 #metrics that can be used for evaluation
 
@@ -46,9 +46,7 @@ def cos_similarity(x, y):
     return round(numerator / float(denominator), 3)
 
 def regex_check(str, regex):
-    if re.match(regex,str) is not None:
-        return 1
-    return 0
+    return 1 if re.match(regex,str) is not None else 0
 
 def metric():
     return regex_check
@@ -65,7 +63,7 @@ for i in examples:
     with suppress_output(suppress_stdout=True, suppress_stderr=True):
         response_test = client_test.complete(prompt = i[0], context = '')["completion"].split("<END>")[0]
     ground_truth = i[1].split("<END>")[0]
-    print("Response: "+response_test,"Ground Truth: "+ground_truth)
+    print(f"Response: {response_test}", f"Ground Truth: {ground_truth}")
     #final_met = [metric()(nlp(response_test).vector, nlp(ground_truth).vector)]
     final_met = [metric()(response_test,r"\s*([Yy]es|[Nn]o|[Nn]ever|[Aa]lways)")]
     print(final_met)

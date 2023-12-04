@@ -11,7 +11,7 @@ from ipaddress import ip_address
 
 # project_root = os.path.abspath(os.getcwd())
 
-print("Project Root: " + project_root, file=sys.stderr)
+print(f"Project Root: {project_root}", file=sys.stderr)
 
 
 # default to the local file, and look in XDG if we can't find it
@@ -32,11 +32,17 @@ settings = Dynaconf(
 MODELS_AVAILABLE = set(model_keys_registered)
 
 if settings.big_model not in MODELS_AVAILABLE:
-    print(settings.big_model + " is an invalid Model selection for Big LLM Model", file=sys.stderr)
+    print(
+        f"{settings.big_model} is an invalid Model selection for Big LLM Model",
+        file=sys.stderr,
+    )
     exit()
 
 if settings.small_model not in MODELS_AVAILABLE:
-    print(settings.small_model + " is an invalid Model selection for Small LLM Model", file=sys.stderr)
+    print(
+        f"{settings.small_model} is an invalid Model selection for Small LLM Model",
+        file=sys.stderr,
+    )
     exit()
 
 # do we want to do this early test and exit?
@@ -45,7 +51,7 @@ if settings.small_model not in MODELS_AVAILABLE:
 #     exit()
 
 def isOpenAIModel(str):
-    return str =="gpt" or str =="chat_gpt"
+    return str in ["gpt", "chat_gpt"]
 
 if settings.openai_api_key is None and (isOpenAIModel(settings.small_model) or isOpenAIModel(settings.big_model)):
     print("Error: you must have an OpenAI API key set via config files, ./settings.default.toml or via environment variable ", file=sys.stderr)

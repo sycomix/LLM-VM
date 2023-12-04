@@ -124,7 +124,4 @@ def check_can_answer_from_memory(question: str, memory: TupleList = [], facts: T
         "temperature": 0.1,
     })
 
-    if "yes" in ans.lower():
-        return True, price
-    else:
-        return False, price
+    return (True, price) if "yes" in ans.lower() else (False, price)

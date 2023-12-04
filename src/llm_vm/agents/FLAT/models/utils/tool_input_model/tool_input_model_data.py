@@ -5,7 +5,9 @@ from llm_vm.agents.FLAT.agent_helper.utils import verbose_answer
 
 def __get_tool_input_model(model: OpenAIModel) -> ToolInputModel:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.abspath(os.path.join(current_dir, f'../../raw_data/tool_input_data.json'))
+    file_path = os.path.abspath(
+        os.path.join(current_dir, '../../raw_data/tool_input_data.json')
+    )
 
     json_data: List[ToolInputModelJSONData] = json.load(open(file_path, "r"))["data"]
 

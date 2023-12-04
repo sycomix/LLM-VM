@@ -115,10 +115,7 @@ class WeaviateDB(VectorDB):
     
     def read_all_objects(self, class_name):
         collection = self.client.collections.get(class_name)
-        items_list = []
-        for item in collection.iterator():
-            items_list.append(item.properties)
-        return items_list
+        return [item.properties for item in collection.iterator()]
 
     def add_prop(self, class_name, prop):
         assert type(prop) == "dict"

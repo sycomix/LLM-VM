@@ -147,10 +147,10 @@ class GrammarConstraint(ABC):
             'json': JSONConstraint,
         }
 
-        if grammar_type not in grammars.keys():
+        if grammar_type in grammars:
+            return grammars[grammar_type](model_uri, tokenizer)
+        else:
             raise ValueError(f'{grammar_type} is not supported. The only valid grammar types are {grammars.keys()}')
-
-        return grammars[grammar_type](model_uri, tokenizer)
 
 
 class PythonConstraint(GrammarConstraint): 
@@ -164,18 +164,20 @@ class PythonConstraint(GrammarConstraint):
         # Preprocess expression to handle special cases
         if expression[0] in specials:
             expression = f'\{expression}'
-        elif len(expression) == 1 and (expression == '[' or  expression == '('):
+        elif len(expression) == 1 and expression in ['[', '(']:
             expression = f'\{expression}'
-        
+
         try:
             # Compile the regex pattern and use it to match valid tokens in the vocabulary
             pattern = re.compile(expression, re.UNICODE)
-            for token, id in vocab.items():
-                if pattern.match(token) is not None:
-                   valid_tokens.append((token, id))
+            valid_tokens.extend(
+                (token, id)
+                for token, id in vocab.items()
+                if pattern.match(token) is not None
+            )
         except Exception as e: 
             print("Regex Compiling Error: ", f"{e} - {expression}") 
-    
+
         # Return a set of valid tokens based on the pattern
         return set(valid_tokens)
     
@@ -183,44 +185,34 @@ class PythonConstraint(GrammarConstraint):
         # Create the Python parser with Lark, using the LALR algorithm
         self.parser = Lark.open_from_package('lark', 'python.lark', ['grammars'], parser='lalr', regex=True, lexer='contextual', postlex=PythonIndenter(), start='file_input')
         terminals = self.parser.terminals
-        t_map = {}
-        for t in terminals:
-            t_map[t.name] = t.pattern.value
-
-        # Return a map of terminal tokens and their corresponding regex patterns
-        return t_map
+        return {t.name: t.pattern.value for t in terminals}
 
     def _prefix_state(self, prefix_str=None, last_token=None):
         valid_next = []
-        if self._parser_state is None:
-            try:      
+        try:  
+            if self._parser_state is None:
                 # Parse the entire token sequence
                 interactive_tree = self.parser.parse_interactive(prefix_str)
                 interactive_tree.exhaust_lexer()
                 self._parser_state = interactive_tree.copy()
-                
+
                 # Get the valid next states
                 valid_next = list(interactive_tree.accepts())
-            except Exception as e:
-                # print("Parsing Error: ", e)
-                pass
-        else:
-            try:
+            else:
                 # lex the last token
                 last_lex = list(self.parser.lex(last_token))
                 # update parser state by feeding last token
                 self._parser_state.feed_token(last_lex[0])
                 valid_next = list(self._parser_state.accepts())
-            except Exception as e:
-                # print("Parsing Error: ", e)
-                pass
-
+        except Exception as e:
+            # print("Parsing Error: ", e)
+            pass
         # Return a list of valid next terminals
         return valid_next
 
     def construct_final_filter_set(self, prefix_ids, terminals_map):
         valid_next_ids = []
-        
+
         if self._copy_state == True:
             # Decode only the last prefix ID
             last_token = self.tokenizer.batch_decode(prefix_ids[:, -1], skip_special_tokens=True)[0]
@@ -236,10 +228,7 @@ class PythonConstraint(GrammarConstraint):
         for lex in next_lex:
             # Get the token set for each terminal symbol
             token_set = terminals_map[lex]
-            for t in token_set:
-                # Add valid token IDs to the list
-                valid_next_ids.append(t[-1])
-        
+            valid_next_ids.extend(t[-1] for t in token_set)
         # Return a set of valid next token IDs
         return set(valid_next_ids)
 
@@ -255,18 +244,20 @@ class JSONConstraint(GrammarConstraint):
         # Preprocess expression to handle special cases
         if expression[0] in specials:
             expression = f'\{expression}'
-        elif len(expression) == 1 and (expression == '[' or  expression == '('):
+        elif len(expression) == 1 and expression in ['[', '(']:
             expression = f'\{expression}'
 
         try:
             # Compile the regex pattern and use it to match all valid tokens in the vocabulary
             pattern = re.compile(expression, re.UNICODE)
-            for token, id in vocab.items():
-                if pattern.match(token) is not None:
-                   valid_tokens.append((token, id))
+            valid_tokens.extend(
+                (token, id)
+                for token, id in vocab.items()
+                if pattern.match(token) is not None
+            )
         except Exception as e: 
             print(e, expression) 
-    
+
         # Return a set of valid tokens based on the pattern
         return set(valid_tokens)
     
@@ -295,8 +286,7 @@ class JSONConstraint(GrammarConstraint):
 
         %ignore WS
         """
-        
-        # Create Lark internal transformer to make parsing faster and more memory efficient 
+
         class TreeToJson(Transformer):
             @v_args(inline=True)
             def string(self, s):
@@ -317,44 +307,34 @@ class JSONConstraint(GrammarConstraint):
                         lexer='contextual',
                         transformer=TreeToJson())
         terminals = self.parser.terminals
-        t_map = {}
-        for t in terminals:
-            t_map[t.name] = t.pattern.value
-        
-        # Return a map of terminal tokens and their corresponding regex patterns
-        return t_map
+        return {t.name: t.pattern.value for t in terminals}
 
     def _prefix_state(self, prefix_str=None, last_token=None):
         valid_next = []
-        if self._parser_state is None:
-            try:      
+        try:  
+            if self._parser_state is None:
                 # Parse the entire token sequence
                 interactive_tree = self.parser.parse_interactive(prefix_str)
                 interactive_tree.exhaust_lexer()
                 self._parser_state = interactive_tree.copy()
-                
+
                 # Get the valid next states
                 valid_next = list(interactive_tree.accepts())
-            except Exception as e:
-                # print("Parsing Error: ", e)
-                pass
-        else:
-            try:
+            else:
                 # lex the last token
                 last_lex = list(self.parser.lex(last_token))
                 # update parser state by feeding last token
                 self._parser_state.feed_token(last_lex[0])
                 valid_next = list(self._parser_state.accepts())
-            except Exception as e:
-                # print("Parsing Error: ", e)
-                pass
-
+        except Exception as e:
+            # print("Parsing Error: ", e)
+            pass
         # Return a list of valid next terminals
         return valid_next
 
     def construct_final_filter_set(self, prefix_ids, terminals_map):
         valid_next_ids = []
-        
+
         if self._copy_state == True:
             # Decode only the last prefix ID
             last_token = self.tokenizer.batch_decode(prefix_ids[:, -1], skip_special_tokens=True)[0]
@@ -370,10 +350,7 @@ class JSONConstraint(GrammarConstraint):
         for lex in next_lex:
             # Get the token set for each terminal symbol
             token_set = terminals_map[lex]
-            for t in token_set:
-                # Add valid token IDs to the list
-                valid_next_ids.append(t[-1])
-                
+            valid_next_ids.extend(t[-1] for t in token_set)
         # Return a set of valid next token IDs
         return set(valid_next_ids)
 

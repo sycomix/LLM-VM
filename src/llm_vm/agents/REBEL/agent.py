@@ -165,7 +165,7 @@ def buildExampleTools(tools=GENERIC_TOOLS):
 def squared_sum(x):
     """return 3 rounded square rooted value"""
 
-    return round(sqrt(sum([a * a for a in x])), 3)
+    return round(sqrt(sum(a * a for a in x)), 3)
 
 
 def cos_similarity(x, y):
@@ -182,10 +182,7 @@ class Agent:
         self.price = 0
         self.tools = []
         self.set_tools(buildExampleTools()+tools)
-        if bot_str == "":
-            self.bot_str = bot_str
-        else:
-            self.bot_str = "<GLOBAL>" + bot_str + "<GLOBAL>"
+        self.bot_str = bot_str if bot_str == "" else f"<GLOBAL>{bot_str}<GLOBAL>"
         self.nlp=spacy.load("en_core_web_md")
         # set all the API resource keys to make calls
         set_api_key(openai_key, "OPENAI_API_KEY")
@@ -207,11 +204,15 @@ class Agent:
 
         tool = self.tools[tool_id]
         params = (
-            "{"
-            + ", ".join(
-                ['"' + l + '": ' + v for l, v in tool["dynamic_params"].items()]
+            (
+                (
+                    "{"
+                    + ", ".join(
+                        [f'"{l}": {v}' for l, v in tool["dynamic_params"].items()]
+                    )
+                )
+                + "}"
             )
-            + "}"
             if tool["dynamic_params"] != ""
             else "{}"
         )
@@ -236,13 +237,13 @@ class Agent:
         """
 
         for tool in tools:
-            if not "args" in tool:
+            if "args" not in tool:
                 tool["args"] = {}
-            if not "method" in tool:
+            if "method" not in tool:
                 tool["method"] = "GET"
-            if not "examples" in tool:
+            if "examples" not in tool:
                 tool["examples"] = []
-            if not "dynamic_params" in tool:
+            if "dynamic_params" not in tool:
                 tool["dynamic_params"] = {}
             self.tools += [tool]
 
@@ -412,13 +413,11 @@ class Agent:
 
         random_fixed_seed.shuffle(examples)
 
-        cur_question = f"<{CONVERSATION}>{mem}</{CONVERSATION}>" + makeQuestion(
-            memory, question, tool=tool_to_use
-        )
+        cur_question = f"<{CONVERSATION}>{mem}</{CONVERSATION}>{makeQuestion(memory, question, tool=tool_to_use)}"
         prompt = MSG("system", "You are a good and helpful assistant.")
         prompt += MSG(
             "user",
-            "<TOOLS>" + tool_context + "</TOOLS>" + "".join(examples) + cur_question,
+            f"<TOOLS>{tool_context}</TOOLS>" + "".join(examples) + cur_question,
         )
         return call_ChatGPT(
             self, prompt, stop=f"</{RESPONSE}>", max_tokens=max_tokens
@@ -484,13 +483,9 @@ class Agent:
             self.price += subq[0]
             new_facts = []
 
-            for i in range(len(subq_final)):
+            for item in subq_final:
                 _, new_facts = self.promptf(
-                    subq_final[i],
-                    memory,
-                    facts,
-                    level+1,
-                    split_allowed=split_allowed,
+                    item, memory, facts, level + 1, split_allowed=split_allowed
                 )
                 facts = facts + new_facts
                 mem = "".join(
@@ -509,7 +504,7 @@ class Agent:
         self.price += answer_in_memory[0]
         answer_in_memory = answer_in_memory[1]
         if answer_in_memory:
-            prompt = MSG("system", "You are a good and helpful bot" + self.bot_str)
+            prompt = MSG("system", f"You are a good and helpful bot{self.bot_str}")
             prompt += MSG(
                 "user",
                 mem + "\nQ:" + question + "\nANSWER Q, DO NOT MAKE UP INFORMATION.",
@@ -538,7 +533,7 @@ class Agent:
         except:
             tool_to_use = len(self.tools)
         if tool_to_use >= len(self.tools):
-            prompt = MSG("system", "You are a good and helpful bot" + self.bot_str)
+            prompt = MSG("system", f"You are a good and helpful bot{self.bot_str}")
             prompt += MSG(
                 "user",
                 mem
@@ -554,7 +549,7 @@ class Agent:
             memory,
             facts,
             question,
-            lambda t: "What should the input for tool " + str(t) + " be to answer Q?",
+            lambda t: f"What should the input for tool {str(t)} be to answer Q?",
             "JSON",
             lambda t, ex: ex[2],
             tool_to_use=tool_to_use,
@@ -570,7 +565,7 @@ class Agent:
                 self.tools[tool_to_use], tool_input, question, memory, facts, query=query
             )
         except:
-            prompt = MSG("system", "You are a good and helpful bot" + self.bot_str)
+            prompt = MSG("system", f"You are a good and helpful bot{self.bot_str}")
             prompt += MSG(
                 "user",
                 mem + "\nQ:" + question + "\nANSWER Q, DO NOT MAKE UP INFORMATION.",
@@ -588,10 +583,10 @@ def rebel_main():
     conversation_history = []
     last = ""
     while True:
-        inp = input(last + "Human: ")
+        inp = input(f"{last}Human: ")
         return_value = label.run(inp, conversation_history)
         conversation_history = return_value[1]
-        last = "AI: " + str(return_value[0]) + "\n"
+        last = f"AI: {str(return_value[0])}" + "\n"
 
 if __name__ == "__main__":
     rebel_main()

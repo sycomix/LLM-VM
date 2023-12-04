@@ -32,8 +32,19 @@ def __split_into_subquestions_instructions(extra: str = "") -> str:
     return f"""<{L_SPLIT_INSTRUCTIONS}>Look at the tools we have access to. If needed, split <{L_QUESTION}/> into subquestions, so each <{L_QUESTION}/> can be answered with one use of one tool. Make as few subquestions as possible, comma-separated, avoid duplicates, and return nothing else.{extra}</{L_SPLIT_INSTRUCTIONS}>"""
 
 def make_tool_desc(tool: SingleTool):
-    params = "{" + ", ".join(['"'+l + '": '+v for l, v in tool['dynamic_params'].items()]
-                               )+"}" if tool['dynamic_params'] != "" else "{}"
+    params = (
+        (
+            (
+                "{"
+                + ", ".join(
+                    [f'"{l}": {v}' for l, v in tool['dynamic_params'].items()]
+                )
+            )
+            + "}"
+        )
+        if tool['dynamic_params'] != ""
+        else "{}"
+    )
     return f'''<{L_TOOL} id="{tool['id']}">
   <{L_DESCRIPTION}>{tool['description']}</{L_DESCRIPTION}>
   <{L_PARAMS}>{params}</{L_PARAMS}>
@@ -58,15 +69,17 @@ def prompt_for_answer(question: str) -> str:
     return f'''[{L_QUESTION}]: {question}\n[{L_ANSWER}]: ''';
 
 ## ONLY for training purposes!
-def get_training_tool_subset (
+def get_training_tool_subset(
     list_of_tools: ToolList,
     tool_id_always_returned: Union[int, None],
     max_num_elements: int = 6
 ) -> ToolList:
     # ONLY when we don't know, we return any elements.
-    if tool_id_always_returned == None \
-       or tool_id_always_returned == DefaultTools.I_DONT_KNOW.value \
-       or tool_id_always_returned == DefaultTools.ANSWER_FROM_MEMORY.value:
+    if (
+        tool_id_always_returned is None
+        or tool_id_always_returned == DefaultTools.I_DONT_KNOW.value
+        or tool_id_always_returned == DefaultTools.ANSWER_FROM_MEMORY.value
+    ):
         return sample(list_of_tools, max_num_elements - 1)
 
     specific_tool = next(tool for tool in list_of_tools if tool["id"] == tool_id_always_returned)

@@ -87,10 +87,13 @@ def promptf(
 
         if verbose > 0:
             if len(sub_questions) == 1:
-                print_big(f"NO SPLIT REQUIRED")
+                print_big("NO SPLIT REQUIRED")
             else:
-                print_big(f'''Question:\n- {main_question}\n\nSubquestions:\n''' + (
-                    "- " + "\n- ".join(sub_questions)), f"SPLIT")
+                print_big(
+                    f'''Question:\n- {main_question}\n\nSubquestions:\n'''
+                    + ("- " + "\n- ".join(sub_questions)),
+                    "SPLIT",
+                )
 
         calls: List[str] = []
         debug_return: DebugCallList = []
@@ -142,7 +145,7 @@ def promptf(
 
     # Only in the cases where we DON'T have a tool (answer_from_tool == False) we check if we can answer from memory.
     can_answer_from_memory = force_answer_from_memory
-    if cannot_use_tools_to_answer and not force_answer_from_memory:
+    if cannot_use_tools_to_answer and not can_answer_from_memory:
         can_answer_from_memory, price_check = check_can_answer_from_memory(
             question, memory=factual_memory)
         price_accumulator += price_check
@@ -178,19 +181,30 @@ def promptf(
 
     conversation_history = generate_convo_history(facts=factual_memory)
     # No information in the Conversation memory AND no tool --> Using AI General Knowledge Base.
-    if best_tool_id in [DefaultTools.I_DONT_KNOW.value, DefaultTools.ANSWER_FROM_MEMORY.value]:
+    if best_tool_id == DefaultTools.I_DONT_KNOW.value:
 
-        if (best_tool_id == DefaultTools.I_DONT_KNOW.value):
-            current_prompt = f"{bot_instructions}\n" if bot_instructions else "" \
-                + (f"<{L_CONVERSATION}>{conversation_history}</{L_CONVERSATION}>\n" if len(conversation_history) else "") \
-                + f"<{L_QUESTION}>{question}</{L_QUESTION}>\n" \
-                + f"<{L_THOUGHT}>Maybe not enough information to answer. If that's the case, say why.</{L_THOUGHT}>\n" \
-                + f"<{L_ANSWER}>"
-        else:
-            current_prompt = f"{bot_instructions}\n" if bot_instructions else "" \
-                + (f"<{L_CONVERSATION}>{conversation_history}</{L_CONVERSATION}>\n" if len(conversation_history) else "") \
-                + f"<{L_QUESTION}>{question}</{L_QUESTION}>\n" \
-                + f"<{L_ANSWER}>"
+        current_prompt = f"{bot_instructions}\n" if bot_instructions else "" \
+            + (f"<{L_CONVERSATION}>{conversation_history}</{L_CONVERSATION}>\n" if len(conversation_history) else "") \
+            + f"<{L_QUESTION}>{question}</{L_QUESTION}>\n" \
+            + f"<{L_THOUGHT}>Maybe not enough information to answer. If that's the case, say why.</{L_THOUGHT}>\n" \
+            + f"<{L_ANSWER}>"
+        a, price = call_llm({
+            "llm": LLMCallType.OPENAI_COMPLETION,
+            "model": OpenAIModel.DAVINCI_TEXT.value,
+            "max_tokens": 500,
+            "prompt": current_prompt,
+            "stop": f"</{L_ANSWER}>",
+            "temperature": 0.1,
+        })
+        price_accumulator += price
+        return a, [(question, a)], [], [], price_accumulator
+
+    elif best_tool_id == DefaultTools.ANSWER_FROM_MEMORY.value:
+
+        current_prompt = f"{bot_instructions}\n" if bot_instructions else "" \
+            + (f"<{L_CONVERSATION}>{conversation_history}</{L_CONVERSATION}>\n" if len(conversation_history) else "") \
+            + f"<{L_QUESTION}>{question}</{L_QUESTION}>\n" \
+            + f"<{L_ANSWER}>"
 
         a, price = call_llm({
             "llm": LLMCallType.OPENAI_COMPLETION,
