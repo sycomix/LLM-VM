@@ -21,7 +21,9 @@ def __get_random_tool_subset(tool_id: int, shuffle_value: int = 0, shuffle_modul
 def __get_toolpicker_model(tools_input_model: ToolpickerInputModel) -> ToolpickerInputModel:
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.abspath(os.path.join(current_dir, f'../../raw_data/toolpicker_data.json'))
+    file_path = os.path.abspath(
+        os.path.join(current_dir, '../../raw_data/toolpicker_data.json')
+    )
     json_data: List[QuestionSplitModelJSONData] = json.load(open(file_path, "r"))["data"]
 
     tools_input_model["data"] = json_data
@@ -30,8 +32,8 @@ def __get_toolpicker_model(tools_input_model: ToolpickerInputModel) -> Toolpicke
         rand_value = randrange(0, len(tools_input_model["data"]))
         answer_key = t["answer"]
         answer_value = ALL_TOOLS_MAP[answer_key].value if answer_key in ALL_TOOLS_MAP else None
-        if (answer_value == None):
-            raise Exception("Invalid tool name/value: " + answer_key)
+        if answer_value is None:
+            raise Exception(f"Invalid tool name/value: {answer_key}")
 
         # tool_id_to_use = __use_tool(answer_value, rand_value) if answer_value > 0 else answer_value
         tool_id_to_use = 0

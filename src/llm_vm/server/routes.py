@@ -33,14 +33,14 @@ def optimizing_complete():
         return {"status":0, "resp":"No OpenAI key provided"}
 
     if "temperature" in data.keys():
-        if type(data["temperature"]) != float and type(data["temperature"]) != int:
+        if type(data["temperature"]) not in [float, int]:
             return {"status":0, "resp":"Wrong Data Type for temperature"}
         else:
-            kwargs.update({"temperature":data["temperature"]})
+            kwargs["temperature"] = data["temperature"]
 
     if "stoptoken" in data.keys():
 
-        if type(data["stoptoken"]) != str and type(data["stoptoken"]) != list:
+        if type(data["stoptoken"]) not in [str, list]:
             # stop can either be a string or array of strings
             return {"status":0, "resp":"Wrong Data Type for stop"}
         elif type(data["stoptoken"]) == list:
@@ -50,9 +50,9 @@ def optimizing_complete():
             for j in data["stoptoken"]:
                 if type(j) != str:
                     return {"status":0, "resp":"Wrong Data Type for stop"}
-            kwargs.update({"stop": data["stoptoken"]})
+            kwargs["stop"] = data["stoptoken"]
         else:
-            kwargs.update({"stop":data["stoptoken"]})
+            kwargs["stop"] = data["stoptoken"]
 
     if "data_synthesis" in data.keys():
         if type(data["data_synthesis"])==bool:
@@ -69,24 +69,22 @@ def optimizing_complete():
     if "tools" in data.keys():
         if type(data["tools"]) != list:
             return {"status":0, "resp":"Wrong data type for tools list"}
-        else:
-            tools=[]
-            for i in data["tools"]:
-                temp_tool_dict = {}
-                temp_args_dict = {}
-                temp_tool_dict.update({"description":i["description"]})
-                temp_tool_dict.update({"dynamic_params":i["dynamic_params"]})
-                temp_tool_dict.update({"method":i["method"]})
-                temp_args_dict.update({"url":i["url"]})
-                temp_args_dict.update({"params":{}})
-                for j in i["static_params"].keys():
-                    temp_args_dict["params"].update({j:i["static_params"][j]})
-                for k in i["dynamic_params"].keys():
-                    temp_args_dict["params"].update({k:"{"+k+"}"})
-                temp_tool_dict.update({"args":temp_args_dict})
-                tools.append(temp_tool_dict)
-            rebel_agent.set_tools(tools)
-            use_rebel_agent = True
+        tools=[]
+        for i in data["tools"]:
+            temp_tool_dict = {
+                "description": i["description"],
+                "dynamic_params": i["dynamic_params"],
+                "method": i["method"],
+            }
+            temp_args_dict = {"url": i["url"], "params": {}}
+            for j in i["static_params"].keys():
+                temp_args_dict["params"].update({j:i["static_params"][j]})
+            for k in i["dynamic_params"].keys():
+                temp_args_dict["params"].update({k:"{"+k+"}"})
+            temp_tool_dict["args"] = temp_args_dict
+            tools.append(temp_tool_dict)
+        rebel_agent.set_tools(tools)
+        use_rebel_agent = True
     try:
         openai.api_key = data["openai_key"]
     except:

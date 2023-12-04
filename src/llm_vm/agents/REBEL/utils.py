@@ -42,7 +42,7 @@ def call_ChatGPT(state, cur_prompt, stop=None, max_tokens=20, temperature=0.2):
             print_op("ASK_CHARS:", chars)
         c = (chars / 2700.0) * ppt
         if state.verbose > 2:
-            print_op("PrePrice: $" + str(c))
+            print_op(f"PrePrice: ${str(c)}")
         return c
 
     cost = calcCost(cur_prompt)
@@ -62,7 +62,7 @@ def call_ChatGPT(state, cur_prompt, stop=None, max_tokens=20, temperature=0.2):
 
     price = ppt * ans["usage"]["total_tokens"] / 1000
     if state.verbose > 0:
-        print_op("Price: $" + str(price))
+        print_op(f"Price: ${str(price)}")
     state.price += price
     response_text = ans["choices"][0]["message"]["content"]
 
@@ -115,7 +115,7 @@ def call_gpt(
 
     simpleprice = model[1] * ans["usage"]["total_tokens"] / 1000
     if state.verbose > 0:
-        print_op("SimplePrice: $" + str(simpleprice))
+        print_op(f"SimplePrice: ${str(simpleprice)}")
     state.price += simpleprice
 
     if state.verbose > 2:
@@ -184,13 +184,12 @@ def tool_api_call(self, tool, gpt_suggested_input, question, memory, facts, quer
             raise Exception("Bad Generated Input")
     tool_args = replace_variables_for_values(tool["args"], parsed_gpt_suggested_input)
 
-    url = tool_args["url"]
     if self.verbose > -1:
+        url = tool_args["url"]
         print_op(tool["method"] + ":", url)
 
     if "auth" in tool_args and isinstance(tool_args["auth"], dict):
-        auths = list(tool_args["auth"].items())
-        if len(auths) > 0:
+        if auths := list(tool_args["auth"].items()):
             tool_args["auth"] = list(tool_args["auth"].items())[0]
         else:
             del tool_args["auth"]
@@ -209,8 +208,8 @@ def tool_api_call(self, tool, gpt_suggested_input, question, memory, facts, quer
     actual_call = str(tool_args)
 
     if resp.status_code in [404, 401, 500]:
-        er = " => " + str(resp.status_code)
-        return "This tool isn't working currently" + er
+        er = f" => {str(resp.status_code)}"
+        return f"This tool isn't working currently{er}"
 
     ret = str(resp.text)
     if self.verbose > 4:
@@ -221,7 +220,7 @@ def tool_api_call(self, tool, gpt_suggested_input, question, memory, facts, quer
         pass
 
     if len(ret) > 10000:
-        ret = ret[0:10000]
+        ret = ret[:10000]
     mem = "".join(
         [
             self.makeInteraction(p, a, "P", "AI", INTERACTION="Human-AI")
@@ -231,7 +230,7 @@ def tool_api_call(self, tool, gpt_suggested_input, question, memory, facts, quer
         [self.makeInteraction(p, a, "P", "AI", INTERACTION="AI-AI") for p, a in facts]
     )
 
-    prompt = MSG("system", "You are a good and helpful bot" + self.bot_str)
+    prompt = MSG("system", f"You are a good and helpful bot{self.bot_str}")
     prompt += MSG(
         "user",
         mem

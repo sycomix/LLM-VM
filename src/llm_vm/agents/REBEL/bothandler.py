@@ -14,17 +14,22 @@ Which tool (number only), if any, would you use to answer the following question
     count=0
     tools_list =  tools_list[starting_tool_num:]
     for i in tools_list:
-        tools+="tool "+str(count)+": "+str(i["description"])+"\n"
+        tools += f"tool {str(count)}: " + str(i["description"]) + "\n"
         count+=1
-    tools+="tool "+str(count)+": "+str("Use this tool when the question can be answered without using any tool or if the question is a greeting or a casual conversation. Also if we need to convert languages other than english, use this tool.")+"\n"
-    prompt=prompt.format(**{"tools":tools,"question":question})
-    prompt += "\n\nYOU JUST ANSWER WITH A NUMBER."
+    tools += (
+        f"tool {str(count)}: Use this tool when the question can be answered without using any tool or if the question is a greeting or a casual conversation. Also if we need to convert languages other than english, use this tool."
+        + "\n"
+    )
+    prompt = (
+        prompt.format(**{"tools": tools, "question": question})
+        + "\n\nYOU JUST ANSWER WITH A NUMBER."
+    )
     ans = openai.completions.create(model="text-davinci-003",
     max_tokens=256,
     stop=None,
     prompt=prompt,
     temperature=0.4)
-    
+
     try:
         return (calcCost(prompt),str(int(re.sub("[^0-9]", "",ans['choices'][0]['text'].strip()))+starting_tool_num))
     except:
@@ -38,9 +43,16 @@ def question_split(question,tools_list,memory):
     starting_tool_num=2
     count=starting_tool_num
     for i in range(len(tools_list)-starting_tool_num):
-        tools+="tool "+str(i+starting_tool_num)+": "+str(tools_list[starting_tool_num+i]["description"])+"\n"
+        tools += (
+            f"tool {str(i + starting_tool_num)}: "
+            + str(tools_list[starting_tool_num + i]["description"])
+            + "\n"
+        )
         count+=1
-    tools+="tool "+str(count)+": "+str("Use this tool when the question can be answered without using any tool or if the question is a greeting or a casual conversation.")+"\n"
+    tools += (
+        f"tool {str(count)}: Use this tool when the question can be answered without using any tool or if the question is a greeting or a casual conversation."
+        + "\n"
+    )
 
     prompt='''
 Tools we have access to =

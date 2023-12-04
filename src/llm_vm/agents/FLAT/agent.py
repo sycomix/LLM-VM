@@ -22,15 +22,15 @@ class Agent:
     def set_tools(self, tools):
         self.tools = []
         for tool in tools:
-            if not 'args' in tool:
+            if 'args' not in tool:
                 tool['args'] = {}
-            if not 'method' in tool:
+            if 'method' not in tool:
                 tool['method'] = "GET"
-            if not 'examples' in tool:
+            if 'examples' not in tool:
                 tool['examples'] = []
-            if not 'dynamic_params' in tool:
+            if 'dynamic_params' not in tool:
                 tool['dynamic_params'] = {}
-            if not 'id' in tool:
+            if 'id' not in tool:
                 tool['id'] = len(self.tools) + 1
 
             self.tools += [tool]
@@ -52,7 +52,13 @@ class Agent:
         except Exception as e:
             print(e, flush=True, file=sys.stderr)
             print("Main thread exception: ", e, flush=True, file=sys.stderr)
-            answer, calls, debug_return, price, has_friendly_tags = "Error: " + str(e), [], [], 0, False
+            answer, calls, debug_return, price, has_friendly_tags = (
+                f"Error: {str(e)}",
+                [],
+                [],
+                0,
+                False,
+            )
 
 
         if self.verbose > -1:

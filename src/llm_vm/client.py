@@ -66,7 +66,7 @@ class Client:
             >>> client = Client(big_model = 'neo')
         """
         self.big_model = big_model
-        self.small_model = small_model 
+        self.small_model = small_model
         self.teacher = load_model_closure(big_model)(**big_model_config)
         self.student = load_model_closure(small_model)(**small_model_config)
         self.vector_db = None
@@ -77,7 +77,7 @@ class Client:
             os.mkdir("finetuned_models")
         # Specify the model strategy the user will use
         # MODELCONFIG = models.ModelConfig(big_model=big_model, small_model=small_model)
-        print("Using model: " + big_model, file=sys.stderr) # announce the primary LLM that is generating results
+        print(f"Using model: {big_model}", file=sys.stderr)
 
         # These functions allow for proper initialization of the optimizer
         # def CALL_BIG(prompt, max_len=256, **kwargs):
@@ -143,7 +143,7 @@ class Client:
                 kwargs.update({"temperature":temperature})
             if stoptoken is not None:
                 kwargs.update({"stop":stoptoken})
-                
+
         else:
             kwargs = hf_kwargs
             if temperature > 0:
@@ -156,26 +156,24 @@ class Client:
         if tools is not None:
             if type(tools) != list:
                 return Exception("Wrong data type for tools. Should be a list")
-            else:
-                final_tools=[]
-                for i in tools:
-                    temp_tool_dict = {}
-                    temp_args_dict = {}
-                    temp_tool_dict.update({"description":i["description"]})
-                    temp_tool_dict.update({"dynamic_params":i["dynamic_params"]})
-                    temp_tool_dict.update({"method":i["method"]})
-                    temp_args_dict.update({"url":i["url"]})
-                    temp_args_dict.update({"params":{}})
-                    for j in i["static_params"].keys():
-                        temp_args_dict["params"].update({j:i["static_params"][j]})
-                    for k in i["dynamic_params"].keys():
-                        temp_args_dict["params"].update({k:"{"+k+"}"})
-                    temp_tool_dict.update({"args":temp_args_dict})
-                    final_tools.append(temp_tool_dict)
-                if self.rebel_agent is None:
-                    self.rebel_agent = agent.Agent("", [], verbose=1) # initialize only if tools registered
-                self.rebel_agent.set_tools(final_tools)
-                use_rebel_agent = True
+            final_tools=[]
+            for i in tools:
+                temp_tool_dict = {
+                    "description": i["description"],
+                    "dynamic_params": i["dynamic_params"],
+                    "method": i["method"],
+                }
+                temp_args_dict = {"url": i["url"], "params": {}}
+                for j in i["static_params"].keys():
+                    temp_args_dict["params"].update({j:i["static_params"][j]})
+                for k in i["dynamic_params"].keys():
+                    temp_args_dict["params"].update({k:"{"+k+"}"})
+                temp_tool_dict["args"] = temp_args_dict
+                final_tools.append(temp_tool_dict)
+            if self.rebel_agent is None:
+                self.rebel_agent = agent.Agent("", [], verbose=1) # initialize only if tools registered
+            self.rebel_agent.set_tools(final_tools)
+            use_rebel_agent = True
 
         try:
             if openai_key is not None:
@@ -185,7 +183,7 @@ class Client:
 
         self.optimizer.openai_key = openai.api_key
         # self.agent.set_api_key(openai.api_key,"OPENAI_API_KEY") #
-        if os.getenv("OPENAI_API_KEY") is None and use_rebel_agent==True :
+        if os.getenv("OPENAI_API_KEY") is None and use_rebel_agent:
             print("warning: you need OPENAI_API_KEY environment variable for ", file=sys.stderr)
 
         try:
@@ -251,7 +249,7 @@ class Client:
                  query_kwargs = {},
                  hf_kwargs = {},
                  openai_kwargs = {}):
-        
+
         """
         This function is Anarchy's completion entry point
 
@@ -280,7 +278,7 @@ class Client:
 
         decoded_vecs = self.emb_model.decode(topk_vecs)
 
-        prompt = decoded_vecs + "/n" + prompt
+        prompt = f"{decoded_vecs}/n{prompt}"
 
         static_context = context
         dynamic_prompt = prompt
@@ -304,26 +302,24 @@ class Client:
         if tools is not None:
             if type(tools) != list:
                 return Exception("Wrong data type for tools. Should be a list")
-            else:
-                final_tools=[]
-                for i in tools:
-                    temp_tool_dict = {}
-                    temp_args_dict = {}
-                    temp_tool_dict.update({"description":i["description"]})
-                    temp_tool_dict.update({"dynamic_params":i["dynamic_params"]})
-                    temp_tool_dict.update({"method":i["method"]})
-                    temp_args_dict.update({"url":i["url"]})
-                    temp_args_dict.update({"params":{}})
-                    for j in i["static_params"].keys():
-                        temp_args_dict["params"].update({j:i["static_params"][j]})
-                    for k in i["dynamic_params"].keys():
-                        temp_args_dict["params"].update({k:"{"+k+"}"})
-                    temp_tool_dict.update({"args":temp_args_dict})
-                    final_tools.append(temp_tool_dict)
-                if self.rebel_agent is None:
-                    self.rebel_agent = agent.Agent("", [], verbose=1) # initialize only if tools registered
-                self.rebel_agent.set_tools(final_tools)
-                use_rebel_agent = True
+            final_tools=[]
+            for i in tools:
+                temp_tool_dict = {
+                    "description": i["description"],
+                    "dynamic_params": i["dynamic_params"],
+                    "method": i["method"],
+                }
+                temp_args_dict = {"url": i["url"], "params": {}}
+                for j in i["static_params"].keys():
+                    temp_args_dict["params"].update({j:i["static_params"][j]})
+                for k in i["dynamic_params"].keys():
+                    temp_args_dict["params"].update({k:"{"+k+"}"})
+                temp_tool_dict["args"] = temp_args_dict
+                final_tools.append(temp_tool_dict)
+            if self.rebel_agent is None:
+                self.rebel_agent = agent.Agent("", [], verbose=1) # initialize only if tools registered
+            self.rebel_agent.set_tools(final_tools)
+            use_rebel_agent = True
 
         try:
             if openai_key is not None:
@@ -333,7 +329,7 @@ class Client:
 
         self.optimizer.openai_key = openai.api_key
         # self.agent.set_api_key(openai.api_key,"OPENAI_API_KEY") #
-        if os.getenv("OPENAI_API_KEY") is None and use_rebel_agent==True :
+        if os.getenv("OPENAI_API_KEY") is None and use_rebel_agent:
             print("warning: you need OPENAI_API_KEY environment variable for ", file=sys.stderr)
 
         try:
